@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOCA·105 — Sistema de Recebimento</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-icon">📦</span>
+      <span class="brand-text">DOCA·105</span>
+    </div>
+    <nav id="nav"></nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main"></main>
+</div>
+
+<!-- Modal: Criar 5000 -->
+<div class="modal-overlay" id="modalNovo5000">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Criar 5000</div>
+      <button class="modal-close" data-close="modalNovo5000">✕</button>
+    </div>
+    <label class="field-label">Fornecedor</label>
+    <div class="field-readonly" id="f5000-fornecedor"></div>
+    <label class="field-label">Nota fiscal</label>
+    <div class="field-readonly mono" id="f5000-notafiscal"></div>
+    <label class="field-label">Número do 5000 (do SAP)</label>
+    <input class="field-input mono" id="f5000-numero" placeholder="Ex: 5000867123" inputmode="numeric">
+    <div class="field-hint" id="f5000-hint">Formato esperado: 5000 + 6 dígitos (ex: 5000867123)</div>
+    <button class="btn-primary btn-block" id="f5000-submit" disabled>Criar recebimento</button>
+  </div>
+</div>
+
+<!-- Modal: Nova divergência -->
+<div class="modal-overlay" id="modalDivergencia">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Registrar divergência</div>
+      <button class="modal-close" data-close="modalDivergencia">✕</button>
+    </div>
+    <label class="field-label">Nota fiscal</label>
+    <input class="field-input mono" id="fd-notafiscal" placeholder="Ex: NF-12345">
+    <label class="field-label">Fornecedor</label>
+    <input class="field-input" id="fd-fornecedor" placeholder="Nome do fornecedor">
+    <label class="field-label">Tipo</label>
+    <select class="field-input" id="fd-tipo">
+      <option value="pedido_divergente">Pedido divergente</option>
+      <option value="valor_divergente">Valor divergente</option>
+      <option value="nf_incorreta">NF com erro</option>
+      <option value="outro">Outro motivo</option>
+    </select>
+    <label class="field-label">Descrição</label>
+    <input class="field-input" id="fd-descricao" placeholder="O que está divergente">
+    <button class="btn-danger btn-block" id="fd-submit" disabled>Registrar divergência</button>
+  </div>
+</div>
+
+<!-- Modal: Nova NF pendente -->
+<div class="modal-overlay" id="modalNovaPendente">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Nova NF pendente</div>
+      <button class="modal-close" data-close="modalNovaPendente">✕</button>
+    </div>
+    <label class="field-label">Fornecedor</label>
+    <input class="field-input" id="fp-fornecedor" placeholder="Nome do fornecedor">
+    <label class="field-label">Nota fiscal</label>
+    <input class="field-input mono" id="fp-notafiscal" placeholder="Ex: NF-12345">
+    <label class="field-label">Número do pedido (se já tiver)</label>
+    <input class="field-input mono" id="fp-pedido" placeholder="Ex: 4500123456">
+    <label class="field-label">Conferência da fiscal</label>
+    <div class="modal-checks" id="fp-checks">
+      <label class="check-field" onclick="toggleModalPendente('pedidoOk'); return false;">
+        <span class="toggle" id="fp-check-pedidoOk"><span class="knob"></span></span>
+        <span class="lbl">Pedido</span>
+      </label>
+      <label class="check-field" onclick="toggleModalPendente('valorOk'); return false;">
+        <span class="toggle" id="fp-check-valorOk"><span class="knob"></span></span>
+        <span class="lbl">Valor</span>
+      </label>
+      <label class="check-field" onclick="toggleModalPendente('aprovacaoOk'); return false;">
+        <span class="toggle" id="fp-check-aprovacaoOk"><span class="knob"></span></span>
+        <span class="lbl">Aprovação</span>
+      </label>
+    </div>
+    <button class="btn-primary btn-block" id="fp-submit" disabled>Adicionar à lista de pendentes</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
