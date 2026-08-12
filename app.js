@@ -44,7 +44,7 @@ const TIPO_LABEL = {
   fornecedor_incorreto: "Fornecedor incorreto",
   outros: "Outros",
 };
-const NOMES_MES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const NOMES_MES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 // ---------- Auditoria ----------
 function logAuditoria(acao, detalhe) {
@@ -193,14 +193,18 @@ function irPara(tab) {
   render();
 }
 
+function receboFieldHtml(label, valueHtml) {
+  return `<span class="receb-field"><span class="receb-field-label">${label}</span>${valueHtml}</span>`;
+}
+
 function receboRowHtml(r) {
   const st = statusRecebimento(r);
   return `
     <div class="receb-row" onclick="abrirDetalheRecebimentoDeOutraTela(${r.id})">
-      <span class="receb-row-nf">${r.notaFiscal}</span>
-      <span class="receb-row-forn">${r.fornecedor}</span>
-      <span class="receb-row-5000 mono">${r.numero}</span>
-      <span class="pill pill-${st.tone}">${st.emoji} ${st.label}</span>
+      ${receboFieldHtml("NF", `<span class="receb-row-nf">${r.notaFiscal}</span>`)}
+      ${receboFieldHtml("Fornecedor", `<span class="receb-row-forn">${r.fornecedor}</span>`)}
+      ${receboFieldHtml("Nº 5000 (SAP)", `<span class="receb-row-5000 mono">${r.numero}</span>`)}
+      ${receboFieldHtml("Status", `<span class="pill pill-${st.tone}">${st.emoji} ${st.label}</span>`)}
     </div>`;
 }
 
@@ -250,16 +254,18 @@ function statusChegada(item) {
 
 function chegadaRowHtml(item) {
   const st = statusChegada(item);
-  const numero = item.tipo === "recebimento" ? item.ref.numero : "—";
+  const numeroHtml = item.tipo === "recebimento"
+    ? `<span class="receb-row-5000 mono">${item.ref.numero}</span>`
+    : `<span class="receb-row-5000">Aguardando conferência</span>`;
   const onclick = item.tipo === "recebimento"
     ? `abrirDetalheRecebimentoDeOutraTela(${item.ref.id})`
     : `irPara('pendentes')`;
   return `
     <div class="receb-row" onclick="${onclick}">
-      <span class="receb-row-nf">${item.ref.notaFiscal}</span>
-      <span class="receb-row-forn">${item.ref.fornecedor}</span>
-      <span class="receb-row-5000 mono">${numero}</span>
-      <span class="pill pill-${st.tone}">${st.emoji} ${st.label}</span>
+      ${receboFieldHtml("NF", `<span class="receb-row-nf">${item.ref.notaFiscal}</span>`)}
+      ${receboFieldHtml("Fornecedor", `<span class="receb-row-forn">${item.ref.fornecedor}</span>`)}
+      ${receboFieldHtml("Nº 5000 (SAP)", numeroHtml)}
+      ${receboFieldHtml("Status", `<span class="pill pill-${st.tone}">${st.emoji} ${st.label}</span>`)}
     </div>`;
 }
 
@@ -375,8 +381,8 @@ function listaPendentesHtml() {
           ${checkFieldHtml("Aprovação", p.aprovacaoOk, `togglePendente(${p.id},'aprovacaoOk')`, p.convertido)}
         </div>
         ${p.convertido
-        ? `<span class="stamp-tag" id="stamp-pend-${p.id}" onclick="copiarNumeroPendente(${p.id})">5000 criado: ${p.numero5000} 📋</span>`
-        : `<button class="btn-primary" ${liberado ? "" : "disabled"} onclick="abrirNovo5000(${p.id})">+ Criar 5000</button>`}
+          ? `<span class="stamp-tag" id="stamp-pend-${p.id}" onclick="copiarNumeroPendente(${p.id})">5000 criado: ${p.numero5000} 📋</span>`
+          : `<button class="btn-primary" ${liberado ? "" : "disabled"} onclick="abrirNovo5000(${p.id})">+ Criar 5000</button>`}
       </div>`;
   }).join("");
   return `<div class="card-list">${rows || `<div class="empty-state">Nada encontrado com esse filtro.</div>`}</div>`;
@@ -421,7 +427,7 @@ function atualizarObservacaoPendente(id, valor) {
 
 function copiarNumeroPendente(id) {
   const p = state.pendentes.find(p => p.id === id);
-  navigator.clipboard?.writeText(p.numero5000).catch(() => { });
+  navigator.clipboard?.writeText(p.numero5000).catch(() => {});
   const el = document.getElementById(`stamp-pend-${id}`);
   if (el) {
     el.classList.add("copied");
@@ -643,7 +649,7 @@ function limparFiltroDia() {
 
 function copiarNumero(id) {
   const r = state.recebimentos.find(r => r.id === id);
-  navigator.clipboard?.writeText(r.numero).catch(() => { });
+  navigator.clipboard?.writeText(r.numero).catch(() => {});
   const el = document.getElementById(`stamp-${id}`);
   if (el) {
     el.classList.add("copied");
