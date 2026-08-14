@@ -136,6 +136,22 @@
   </div>
 </div>
 
+<!-- Modal: Estornar 5000 -->
+<div class="modal-overlay" id="modalEstorno">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Estornar lançamento</div>
+      <button class="modal-close" data-close="modalEstorno">✕</button>
+    </div>
+    <label class="field-label">Recebimento</label>
+    <div class="field-readonly mono" id="estorno-nf"></div>
+    <label class="field-label">Motivo do estorno</label>
+    <input class="field-input" id="estorno-motivo" placeholder="Ex: 5000 lançado errado, duplicado, NF trocada...">
+    <div class="field-hint show" style="color:var(--red)">O recebimento fica marcado como "Estornado" e trava — não dá mais pra clicar em espelho impresso nem mov. 105.</div>
+    <button class="btn-danger btn-block" id="estorno-submit" disabled>Confirmar estorno</button>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

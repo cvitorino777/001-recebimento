@@ -12,6 +12,7 @@ const state = {
   auditoria: [],
   usuarioAtual: "",
   previsoes: [],
+  estornoBase: null,
 };
 
 // ---------- Helpers ----------
@@ -352,11 +353,13 @@ function linhaRecebimentoHtml(item, interativo) {
     const r = item.ref;
     const bloqueado = notasComDivergenciaAberta().has(r.notaFiscal);
     let statusLabel, statusTone;
-    if (r.mov105) { statusLabel = "Concluído"; statusTone = "green"; }
+    if (r.estornado) { statusLabel = "Estornado"; statusTone = "gray"; }
+    else if (r.mov105) { statusLabel = "Concluído"; statusTone = "green"; }
     else if (bloqueado) { statusLabel = "Bloqueado"; statusTone = "red"; }
     else { statusLabel = "Em andamento"; statusTone = "amber"; }
 
-    const espelhoCell = interativo
+    const podeEditar = interativo && !r.estornado;
+    const espelhoCell = podeEditar
       ? `<div class="toggle-cell">
           <span class="toggle ${r.espelhoImpresso ? "on" : ""}" onclick="toggleEspelho(${r.id})"><span class="knob"></span></span>
           <span class="toggle-time">${r.espelhoImpressoEm ? fmtTime(r.espelhoImpressoEm) : ""}</span>
@@ -364,7 +367,7 @@ function linhaRecebimentoHtml(item, interativo) {
       : (r.espelhoImpresso
           ? `<span class="info-badge info-ok">✓ ${fmtTime(r.espelhoImpressoEm)}</span>`
           : `<span class="info-badge info-pending">—</span>`);
-    const mov105Cell = interativo
+    const mov105Cell = podeEditar
       ? `<div class="toggle-cell">
           <span class="toggle ${r.mov105 ? "on" : ""} ${bloqueado && !r.mov105 ? "disabled" : ""}"
                 title="${bloqueado && !r.mov105 ? "Bloqueado: há divergência aberta para esta NF" : ""}"
@@ -375,15 +378,20 @@ function linhaRecebimentoHtml(item, interativo) {
           ? `<span class="info-badge info-ok">✓ ${fmtTime(r.mov105Em)}</span>`
           : `<span class="info-badge info-pending">—</span>`);
 
+    const statusCell = `
+      <span class="pill pill-${statusTone}">${statusLabel}</span> ${bloqueado && !r.mov105 && !r.estornado ? "🚫" : ""}
+      ${r.estornado && r.motivoEstorno ? `<div class="estorno-motivo">Motivo: ${r.motivoEstorno}</div>` : ""}
+      ${interativo && !r.estornado ? `<button class="btn-link-danger" onclick="abrirEstorno(${r.id})">↩ Estornar</button>` : ""}`;
+
     return `
-      <tr>
+      <tr class="${r.estornado ? "row-estornado" : ""}">
         <td><span class="stamp-tag" id="stamp-${r.id}" onclick="copiarNumero(${r.id})">${r.numero} 📋</span></td>
         <td class="fornecedor-nome">${r.fornecedor}</td>
         <td class="fornecedor-nf">${r.notaFiscal}</td>
         <td class="dt">${fmtTime(r.chegadaEm || r.criadoEm)}</td>
         <td>${espelhoCell}</td>
         <td>${mov105Cell}</td>
-        <td><span class="pill pill-${statusTone}">${statusLabel}</span> ${bloqueado && !r.mov105 ? "🚫" : ""}</td>
+        <td>${statusCell}</td>
       </tr>`;
   }
   // pendente — chegou, mas a fiscal ainda não liberou o 5000
@@ -540,7 +548,10 @@ function listaPendentesHtml() {
         </div>
         ${p.convertido
           ? `<span class="stamp-tag" id="stamp-pend-${p.id}" onclick="copiarNumeroPendente(${p.id})">5000 criado: ${p.numero5000} 📋</span>`
-          : `<button class="btn-primary" ${liberado ? "" : "disabled"} onclick="abrirNovo5000(${p.id})">+ Criar 5000</button>`}
+          : `<div style="display:flex; gap:8px; align-items:center">
+              <button class="btn-primary" ${liberado ? "" : "disabled"} onclick="abrirNovo5000(${p.id})">+ Criar 5000</button>
+              <button class="btn-link-danger" onclick="excluirPendente(${p.id})">🗑 Excluir</button>
+             </div>`}
       </div>`;
   }).join("");
   return `<div class="card-list">${rows || `<div class="empty-state">Nada encontrado com esse filtro.</div>`}</div>`;
@@ -598,6 +609,15 @@ function togglePendente(id, campo) {
   const p = state.pendentes.find(p => p.id === id);
   if (p.convertido) return;
   p[campo] = !p[campo];
+  render();
+}
+
+function excluirPendente(id) {
+  const p = state.pendentes.find(p => p.id === id);
+  if (!p || p.convertido) return;
+  if (!confirm(`Excluir a chegada de ${p.fornecedor} (NF ${p.notaFiscal})? Essa ação não pode ser desfeita.`)) return;
+  state.pendentes = state.pendentes.filter(x => x.id !== id);
+  logAuditoria("Excluiu chegada", `NF ${p.notaFiscal} — ${p.fornecedor}`);
   render();
 }
 
@@ -858,6 +878,7 @@ function copiarNumero(id) {
 
 function toggleEspelho(id) {
   const r = state.recebimentos.find(r => r.id === id);
+  if (r.estornado) return;
   r.espelhoImpresso = !r.espelhoImpresso;
   r.espelhoImpressoEm = r.espelhoImpresso ? new Date() : null;
   if (r.espelhoImpresso) logAuditoria("Imprimiu espelho", `NF ${r.notaFiscal} — nº ${r.numero}`);
@@ -866,6 +887,7 @@ function toggleEspelho(id) {
 
 function toggleMov105(id, bloqueado) {
   const r = state.recebimentos.find(r => r.id === id);
+  if (r.estornado) return;
   if (bloqueado && !r.mov105) return;
   r.mov105 = !r.mov105;
   r.mov105Em = r.mov105 ? new Date() : null;
@@ -885,7 +907,7 @@ function viewConfig() {
     </div>
     <div class="subsection-title">Responsável</div>
     <div class="responsavel-row">
-      <input class="field-input" id="cfg-usuario" placeholder="Seu nome" value="${state.usuarioAtual}">
+      <input class="field-input" id="cfg-usuario" placeholder="Seu nome" value="${state.usuarioAtual}" onkeydown="if(event.key==='Enter'){event.preventDefault();salvarUsuarioAtual();}">
       <button class="btn-primary" onclick="salvarUsuarioAtual()">Salvar</button>
     </div>
     <div class="responsavel-atual">${state.usuarioAtual ? `Lançamentos atuais serão registrados como <strong>${state.usuarioAtual}</strong>.` : "Nenhum responsável definido — lançamentos ficam como \"Não identificado\"."}</div>
@@ -908,6 +930,17 @@ function abrirNovo5000(pendenteId) {
   document.getElementById("f5000-submit").disabled = true;
   document.getElementById("f5000-hint").classList.remove("show");
   abrirModal("modalNovo5000");
+}
+
+// ---------- Modal: Estornar 5000 ----------
+function abrirEstorno(id) {
+  const r = state.recebimentos.find(r => r.id === id);
+  if (!r) return;
+  state.estornoBase = { id };
+  document.getElementById("estorno-nf").textContent = `${r.notaFiscal} — ${r.fornecedor} — nº ${r.numero}`;
+  document.getElementById("estorno-motivo").value = "";
+  document.getElementById("estorno-submit").disabled = true;
+  abrirModal("modalEstorno");
 }
 
 let modalPendenteChecks = { pedidoOk: false, valorOk: false, aprovacaoOk: false };
@@ -945,11 +978,27 @@ document.addEventListener("DOMContentLoaded", () => {
       id: Date.now(), numero, fornecedor: base.fornecedor, notaFiscal: base.notaFiscal,
       chegadaEm: base.chegadaEm || new Date(),
       criadoEm: new Date(), espelhoImpresso: false, espelhoImpressoEm: null, mov105: false, mov105Em: null,
+      estornado: false, motivoEstorno: "", estornadoEm: null,
     });
     const pend = state.pendentes.find(p => p.id === base.pendenteId);
     if (pend) { pend.convertido = true; pend.numero5000 = numero; }
     logAuditoria("Criou 5000", `NF ${base.notaFiscal} — ${base.fornecedor} — nº ${numero}`);
     fecharModal("modalNovo5000");
+    render();
+  });
+
+  // Modal: Estornar 5000
+  document.getElementById("estorno-motivo").addEventListener("input", () => {
+    document.getElementById("estorno-submit").disabled = document.getElementById("estorno-motivo").value.trim().length === 0;
+  });
+  document.getElementById("estorno-submit").addEventListener("click", () => {
+    const r = state.recebimentos.find(r => r.id === state.estornoBase.id);
+    const motivo = document.getElementById("estorno-motivo").value.trim();
+    r.estornado = true;
+    r.motivoEstorno = motivo;
+    r.estornadoEm = new Date();
+    logAuditoria("Estornou 5000", `NF ${r.notaFiscal} — nº ${r.numero} — motivo: ${motivo}`);
+    fecharModal("modalEstorno");
     render();
   });
 
@@ -1082,11 +1131,32 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.addEventListener("click", e => { if (e.target === overlay) fecharModal(overlay.id); });
   });
 
+  // Enter funciona como clicar no botão principal, em vez de precisar do mouse
+  habilitarEnter(["fp-fornecedor", "fp-notafiscal"], "fp-submit");
+  habilitarEnter(["f5000-numero"], "f5000-submit");
+  habilitarEnter(["fd-notafiscal", "fd-fornecedor", "fd-descricao"], "fd-submit");
+  habilitarEnter(["prev-fornecedor", "prev-notafiscal", "prev-transportadora"], "prev-submit");
+  habilitarEnter(["estorno-motivo"], "estorno-submit");
+
   render();
 });
 
 function abrirModal(id) { document.getElementById(id).classList.add("open"); }
 function fecharModal(id) { document.getElementById(id).classList.remove("open"); }
+
+// Faz o Enter, dentro de um campo de texto, clicar no botão de confirmar (se não estiver desabilitado)
+function habilitarEnter(inputIds, submitId) {
+  inputIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const btn = document.getElementById(submitId);
+      if (btn && !btn.disabled) btn.click();
+    });
+  });
+}
 
 // ---------- Render geral ----------
 function render() {

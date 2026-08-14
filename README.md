@@ -42,6 +42,7 @@ Pra usar: baixa os três na **mesma pasta** e abre o `index.html` no navegador.
 - Ao salvar, o modal **continua aberto** — os campos limpam e o foco volta pro fornecedor, pra dar pra registrar vários seguidos sem trocar de tela (útil quando chega um monte de caminhão de uma vez). Um aviso verde confirma cada NF registrada. Só fecha quando você clicar em "Fechar".
 - A tela mostra **tudo que chegou hoje** — tanto o que ainda está em Pendentes (linha cinza, sem 5000 ainda) quanto o que já tem 5000 — numa tabela só, com busca (NF, fornecedor ou 5000) e filtros de status.
 - **É aqui — e só aqui — que se marca espelho impresso e mov. 105**, assim que a fiscal deixar o número do 5000. Os toggles ficam direto na linha da tabela e só são clicáveis nesta aba: em Dashboard e Histórico eles aparecem como informação, sem clique.
+- **↩ Estornar** — se um 5000 foi lançado errado, dá pra estornar direto na linha (pede um motivo). O recebimento fica marcado como "Estornado" (linha riscada) e trava — não dá mais pra clicar em espelho impresso nem mov. 105. O motivo fica registrado e aparece embaixo do status.
 - Pra ver dias anteriores, tem um link direto pro Histórico.
 
 ### 3. Pendentes
@@ -49,6 +50,7 @@ Pra usar: baixa os três na **mesma pasta** e abre o `index.html` no navegador.
 - Os três toggles — **Pedido**, **Valor**, **Aprovação** — são marcados aqui pela fiscal.
 - O botão **+ Criar 5000** só libera quando os três toggles estiverem marcados.
 - Ao criar o 5000, a fiscal digita o número manualmente (formato `5000` + 6 dígitos, ex: `5000867123` — é o número gerado no SAP, não o sistema que inventa). **A tela continua em Pendentes** depois de criar — não pula pra outro lugar.
+- **🗑 Excluir** — enquanto ainda não tem 5000, dá pra excluir uma chegada cadastrada errada (pede confirmação). Depois que vira 5000, não dá mais pra excluir — nesse caso o jeito é estornar (ver Recebimentos).
 - **O item não desaparece da lista** depois de virar 5000 — fica marcado com o selo "5000 criado: [número]" (clicável, copia o número).
 - **Filtros** (Todos / Falta Pedido / Falta Valor / Falta Aprovação / Liberado p/ 5000 / Já com 5000) — pra isolar rápido quem está travando o processo e tirar um print pra cobrar quem precisa resolver.
 
@@ -75,6 +77,10 @@ Duas seções:
 Toda tela que lista recebimentos (Dashboard, Recebimentos, Histórico) usa a **mesma tabela**, com as mesmas colunas fixas: **5000 · Forn. · NF · Chegou · Espelho impresso · Mov. 105 · Status**. Itens que ainda não têm 5000 (só chegaram, aguardando a fiscal) aparecem na mesma tabela com "Aguardando fiscal" no lugar do número e um clique leva direto pra Pendentes.
 
 ---
+
+## Enter funciona
+
+Em todos os formulários (registrar chegada, criar 5000, divergência, previsão, estorno, responsável), apertar **Enter** num campo de texto já confirma — não precisa pegar o mouse pra clicar no botão.
 
 ## O que ainda é só protótipo (não é sistema real ainda)
 
