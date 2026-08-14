@@ -11,7 +11,7 @@ const state = {
   filtroPendentes: "todos",
   auditoria: [],
   usuarioAtual: "",
-  esperados: [],
+  previsoes: [],
 };
 
 // ---------- Helpers ----------
@@ -46,14 +46,6 @@ const TIPO_LABEL = {
   outros: "Outros",
 };
 const NOMES_MES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-
-function transporteLabel(obj) {
-  if (!obj || !obj.transporteTipo) return "—";
-  if (obj.transporteTipo === "transportadora") return obj.transporteNome ? `Transportadora — ${obj.transporteNome}` : "Transportadora (não informada)";
-  if (obj.transporteTipo === "por_conta") return "Por conta (do fornecedor)";
-  if (obj.transporteTipo === "interno") return "Interno (frota própria)";
-  return "—";
-}
 
 // ---------- Auditoria ----------
 function logAuditoria(acao, detalhe) {
@@ -152,39 +144,6 @@ function renderMain() {
   if (state.tab === "config") return (main.innerHTML = viewConfig());
 }
 
-function esperadosHoje() {
-  const hojeKey = diaKey(new Date());
-  return state.esperados.filter(e => diaKey(e.criadoEm) === hojeKey);
-}
-
-function adicionarEsperado() {
-  const input = document.getElementById("dash-esperado-nome");
-  const nome = input.value.trim();
-  if (!nome) return;
-  state.esperados.unshift({ id: Date.now(), fornecedor: nome, chegou: false, pendenteId: null, criadoEm: new Date() });
-  input.value = "";
-  document.getElementById("esperados-lista").innerHTML = esperadosListaHtml();
-}
-
-function esperadosListaHtml() {
-  const lista = esperadosHoje();
-  if (!lista.length) return `<div class="empty-state">Nenhum fornecedor esperado cadastrado ainda.</div>`;
-  return `<div class="esperados-list">${lista.map(e => `
-    <div class="esperado-item ${e.chegou ? "chegou" : ""}">
-      <label class="check-field" onclick="${e.chegou ? "" : `marcarEsperadoChegou(${e.id})`}; return false;">
-        <span class="toggle ${e.chegou ? "on" : ""} ${e.chegou ? "disabled" : ""}"><span class="knob"></span></span>
-        <span class="lbl">${e.fornecedor}</span>
-      </label>
-      ${e.chegou ? `<span class="pill pill-green">✓ Chegou</span>` : `<span class="pill pill-amber">Aguardando</span>`}
-    </div>`).join("")}</div>`;
-}
-
-function marcarEsperadoChegou(id) {
-  const e = state.esperados.find(e => e.id === id);
-  if (!e || e.chegou) return;
-  abrirModalNovaChegada(e.fornecedor, e.id);
-}
-
 // ===== Dashboard =====
 function todasChegadas() {
   return [
@@ -244,12 +203,75 @@ function donutChartHtml(dados) {
     </div>`;
 }
 
+// ===== Previsão de chegadas (checklist do dia, independente do fluxo do 5000) =====
+function resetModalPrevisao() {
+  ["prev-fornecedor", "prev-notafiscal", "prev-transportadora"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  const submit = document.getElementById("prev-submit");
+  if (submit) submit.disabled = true;
+  const confirm = document.getElementById("prev-confirm");
+  if (confirm) confirm.textContent = "";
+}
+
+function previsoesHoje() {
+  const hojeKey = diaKey(new Date());
+  return state.previsoes.filter(p => diaKey(p.criadoEm) === hojeKey);
+}
+
+function togglePrevisaoChegou(id) {
+  const p = state.previsoes.find(p => p.id === id);
+  p.chegou = !p.chegou;
+  p.chegouEm = p.chegou ? new Date() : null;
+  if (p.chegou) logAuditoria("Marcou chegada prevista", `${p.fornecedor}${p.notaFiscal ? " — NF " + p.notaFiscal : ""}`);
+  render();
+}
+
+function previsaoRowHtml(p) {
+  const detalhes = [p.notaFiscal ? `NF ${p.notaFiscal}` : "", p.transportadora].filter(Boolean).join(" · ");
+  return `
+    <div class="prev-row ${p.chegou ? "chegou" : ""}">
+      <span class="toggle ${p.chegou ? "on" : ""}" onclick="togglePrevisaoChegou(${p.id})"><span class="knob"></span></span>
+      <div class="prev-info">
+        <div class="prev-forn">${p.fornecedor}</div>
+        <div class="prev-meta">${detalhes || "Sem detalhes extras"}</div>
+      </div>
+      <span class="prev-status">${p.chegou ? `✅ Chegou às ${fmtTime(p.chegouEm)}` : "⏳ Aguardando"}</span>
+    </div>`;
+}
+
+function viewPrevisaoPanel() {
+  const lista = previsoesHoje();
+  const ordenada = [...lista.filter(p => !p.chegou), ...lista.filter(p => p.chegou)];
+  return `
+    <div class="prev-panel">
+      <div class="prev-panel-head">
+        <div>
+          <div class="subsection-title" style="margin:0">Previsão de chegadas — hoje</div>
+          <div class="section-sub">Cadastre quem é esperado hoje (mesmo sem NF ainda) e vá marcando conforme chega. É só uma conferência visual — o registro que gera o 5000 continua em Recebimentos.</div>
+        </div>
+        <button class="btn-outline" onclick="resetModalPrevisao(); abrirModal('modalPrevisao')">+ Adicionar previsão</button>
+      </div>
+      ${ordenada.length ? `<div class="prev-list">${ordenada.map(previsaoRowHtml).join("")}</div>` : `<div class="empty-state">Nenhuma previsão cadastrada pra hoje ainda.</div>`}
+    </div>`;
+}
+
+// Últimas chegadas (com 5000 ou não), pra mostrar assim que o fornecedor chega — não só quando vira 5000
+function ultimasChegadas(n) {
+  const pend = state.pendentes.filter(p => !p.convertido)
+    .map(p => ({ tipo: "pendente", ref: p, chegada: p.chegadaEm || new Date() }));
+  const receb = state.recebimentos
+    .map(r => ({ tipo: "recebimento", ref: r, chegada: r.chegadaEm || r.criadoEm }));
+  return [...pend, ...receb].sort((a, b) => b.chegada - a.chegada).slice(0, n);
+}
+
 function viewDashboard() {
   const chegadasHojeCount = chegadasHoje().length;
   const pendentesAbertos = state.pendentes.filter(p => !p.convertido);
   const divergenciasAbertas = state.divergencias.filter(d => d.status === "aberta");
   const concluidos = state.recebimentos.filter(r => r.mov105);
-  const ultimos = state.recebimentos.slice(0, 5).map(r => ({ tipo: "recebimento", ref: r }));
+  const ultimos = ultimasChegadas(5);
   const delta = deltaChegadas();
 
   const diasChegada = chegadasPorDia(7);
@@ -298,10 +320,11 @@ function viewDashboard() {
     </div>
 
     <div class="dash-actions">
-      <button class="btn-primary" onclick="irPara('recebimentos')">Ir para Recebimentos</button>
       <button class="btn-outline" onclick="irPara('pendentes')">Ver pendências</button>
       <button class="btn-outline" style="border-color:var(--red); color:var(--red)" onclick="irPara('divergencias')">Ver divergências</button>
     </div>
+
+    ${viewPrevisaoPanel()}
 
     <div class="dash-charts-row">
       <div class="chart-panel">
@@ -314,18 +337,8 @@ function viewDashboard() {
       </div>
     </div>
 
-    <div class="subsection-title">Fornecedores esperados hoje</div>
-    <div class="esperados-add-row">
-      <input class="field-input" id="dash-esperado-nome" placeholder="Nome do fornecedor esperado hoje" style="margin-bottom:0" onkeydown="if(event.key==='Enter')adicionarEsperado()">
-      <button class="btn-outline" onclick="adicionarEsperado()">+ Adicionar</button>
-    </div>
-    <div id="esperados-lista">${esperadosListaHtml()}</div>
-    <div style="margin-top:12px; margin-bottom:26px">
-      <button class="btn-primary" onclick="abrirModalNovaChegada()">+ Chegou alguém que não estava na lista</button>
-    </div>
-
     <div class="subsection-title">Últimos recebimentos</div>
-    ${tabelaRecebimentosHtml(ultimos, "Nenhum recebimento lançado ainda.")}`;
+    ${tabelaRecebimentosHtml(ultimos, "Nenhum recebimento lançado ainda.", false)}`;
 }
 
 function irPara(tab) {
@@ -334,7 +347,7 @@ function irPara(tab) {
 }
 
 // ===== Tabela padrão de recebimentos (Dashboard, Recebimentos e Histórico usam a mesma) =====
-function linhaRecebimentoHtml(item) {
+function linhaRecebimentoHtml(item, interativo) {
   if (item.tipo === "recebimento") {
     const r = item.ref;
     const bloqueado = notasComDivergenciaAberta().has(r.notaFiscal);
@@ -342,26 +355,34 @@ function linhaRecebimentoHtml(item) {
     if (r.mov105) { statusLabel = "Concluído"; statusTone = "green"; }
     else if (bloqueado) { statusLabel = "Bloqueado"; statusTone = "red"; }
     else { statusLabel = "Em andamento"; statusTone = "amber"; }
+
+    const espelhoCell = interativo
+      ? `<div class="toggle-cell">
+          <span class="toggle ${r.espelhoImpresso ? "on" : ""}" onclick="toggleEspelho(${r.id})"><span class="knob"></span></span>
+          <span class="toggle-time">${r.espelhoImpressoEm ? fmtTime(r.espelhoImpressoEm) : ""}</span>
+        </div>`
+      : (r.espelhoImpresso
+          ? `<span class="info-badge info-ok">✓ ${fmtTime(r.espelhoImpressoEm)}</span>`
+          : `<span class="info-badge info-pending">—</span>`);
+    const mov105Cell = interativo
+      ? `<div class="toggle-cell">
+          <span class="toggle ${r.mov105 ? "on" : ""} ${bloqueado && !r.mov105 ? "disabled" : ""}"
+                title="${bloqueado && !r.mov105 ? "Bloqueado: há divergência aberta para esta NF" : ""}"
+                onclick="toggleMov105(${r.id}, ${bloqueado})"><span class="knob"></span></span>
+          <span class="toggle-time">${r.mov105Em ? fmtTime(r.mov105Em) : ""}</span>
+        </div>`
+      : (r.mov105
+          ? `<span class="info-badge info-ok">✓ ${fmtTime(r.mov105Em)}</span>`
+          : `<span class="info-badge info-pending">—</span>`);
+
     return `
       <tr>
         <td><span class="stamp-tag" id="stamp-${r.id}" onclick="copiarNumero(${r.id})">${r.numero} 📋</span></td>
         <td class="fornecedor-nome">${r.fornecedor}</td>
         <td class="fornecedor-nf">${r.notaFiscal}</td>
         <td class="dt">${fmtTime(r.chegadaEm || r.criadoEm)}</td>
-        <td>
-          <div class="toggle-cell">
-            <span class="toggle ${r.espelhoImpresso ? "on" : ""}" onclick="toggleEspelho(${r.id})"><span class="knob"></span></span>
-            <span class="toggle-time">${r.espelhoImpressoEm ? fmtTime(r.espelhoImpressoEm) : ""}</span>
-          </div>
-        </td>
-        <td>
-          <div class="toggle-cell">
-            <span class="toggle ${r.mov105 ? "on" : ""} ${bloqueado && !r.mov105 ? "disabled" : ""}"
-                  title="${bloqueado && !r.mov105 ? "Bloqueado: há divergência aberta para esta NF" : ""}"
-                  onclick="toggleMov105(${r.id}, ${bloqueado})"><span class="knob"></span></span>
-            <span class="toggle-time">${r.mov105Em ? fmtTime(r.mov105Em) : ""}</span>
-          </div>
-        </td>
+        <td>${espelhoCell}</td>
+        <td>${mov105Cell}</td>
         <td><span class="pill pill-${statusTone}">${statusLabel}</span> ${bloqueado && !r.mov105 ? "🚫" : ""}</td>
       </tr>`;
   }
@@ -380,8 +401,8 @@ function linhaRecebimentoHtml(item) {
     </tr>`;
 }
 
-function tabelaRecebimentosHtml(itens, vazioTexto) {
-  const rows = itens.map(linhaRecebimentoHtml).join("");
+function tabelaRecebimentosHtml(itens, vazioTexto, interativo) {
+  const rows = itens.map(item => linhaRecebimentoHtml(item, interativo)).join("");
   return `
     <div class="panel-table">
       <table>
@@ -399,7 +420,7 @@ function viewRecebimentosBusca() {
         <h1 class="section-title">Recebimentos</h1>
         <div class="section-sub">Tudo que chegou hoje. Registre a chegada aqui — a conferência (Pedido/Valor/Aprovação) acontece em Pendentes. Depois que a fiscal criar o 5000, marque espelho impresso e mov. 105 direto nesta lista.</div>
       </div>
-      <button class="btn-primary" onclick="abrirModalNovaChegada()">+ Registrar chegada</button>
+      <button class="btn-primary" onclick="resetModalPendenteChecks(); abrirModal('modalNovaPendente')">+ Registrar chegada</button>
     </div>
     <div class="busca-row">
       <input class="field-input search-input" id="busca-receb" placeholder="🔎 Buscar NF, fornecedor ou 5000..."
@@ -453,7 +474,7 @@ function listaRecebimentosBuscaHtml() {
     const numero = item.tipo === "recebimento" ? item.ref.numero : "";
     return item.ref.notaFiscal.toLowerCase().includes(termo) || item.ref.fornecedor.toLowerCase().includes(termo) || numero.toLowerCase().includes(termo);
   });
-  return tabelaRecebimentosHtml(lista, "Nada chegou hoje ainda.");
+  return tabelaRecebimentosHtml(lista, "Nada chegou hoje ainda.", true);
 }
 
 function atualizarBuscaRecebimentos(valor) {
@@ -507,7 +528,6 @@ function listaPendentesHtml() {
         <div class="pend-info">
           <div class="nome">Fornecedor: ${p.fornecedor}</div>
           <div class="nf">NF: ${p.notaFiscal}</div>
-          <div class="nf">Transporte: ${transporteLabel(p)}</div>
           <input class="field-input pend-inline-input" placeholder="Nº do pedido (opcional)"
                  value="${p.numeroPedido || ""}" oninput="atualizarPedidoPendente(${p.id}, this.value)">
           <input class="field-input pend-inline-input" placeholder="Notas..."
@@ -662,7 +682,7 @@ function calendarHtml() {
   const offset = primeiroDia.getDay();
   const diasComRecebimento = new Set([
     ...state.recebimentos.map(r => diaKey(r.chegadaEm || r.criadoEm)),
-    ...state.pendentes.map(p => diaKey(p.chegadaEm)),
+    ...state.pendentes.filter(p => !p.convertido).map(p => diaKey(p.chegadaEm || new Date())),
   ]);
 
   let cells = "";
@@ -690,15 +710,22 @@ function calendarHtml() {
 
 function recebimentosNoPeriodo() {
   const { year, month, diaSelecionado } = state.calendar;
-  const pend = state.pendentes.map(p => ({ tipo: "pendente", ref: p, chegada: p.chegadaEm }));
-  const receb = state.recebimentos.map(r => ({ tipo: "recebimento", ref: r, chegada: r.chegadaEm || r.criadoEm }));
+  if (diaSelecionado) return state.recebimentos.filter(r => diaKey(r.criadoEm) === diaSelecionado);
+  return state.recebimentos.filter(r => r.criadoEm.getFullYear() === year && r.criadoEm.getMonth() === month);
+}
+
+// Todos os fornecedores/NFs que chegaram no período — com 5000 ou não (pendentes)
+function itensNoPeriodo() {
+  const { year, month, diaSelecionado } = state.calendar;
+  const pend = state.pendentes.filter(p => !p.convertido)
+    .map(p => ({ tipo: "pendente", ref: p, chegada: p.chegadaEm || new Date() }));
+  const receb = state.recebimentos
+    .map(r => ({ tipo: "recebimento", ref: r, chegada: r.chegadaEm || r.criadoEm }));
   const todos = [...pend, ...receb];
-  return todos
-    .filter(item => {
-      if (diaSelecionado) return diaKey(item.chegada) === diaSelecionado;
-      return item.chegada.getFullYear() === year && item.chegada.getMonth() === month;
-    })
-    .sort((a, b) => b.chegada - a.chegada);
+  const filtrados = diaSelecionado
+    ? todos.filter(i => diaKey(i.chegada) === diaSelecionado)
+    : todos.filter(i => i.chegada.getFullYear() === year && i.chegada.getMonth() === month);
+  return filtrados.sort((a, b) => b.chegada - a.chegada);
 }
 
 function periodoLabel() {
@@ -712,7 +739,8 @@ function periodoLabel() {
 
 function viewHistorico() {
   const diaSel = state.calendar.diaSelecionado;
-  const itens = recebimentosNoPeriodo();
+  const lista = recebimentosNoPeriodo(); // só os que já têm 5000 — usado no relatório
+  const itens = itensNoPeriodo(); // todos que chegaram, com 5000 ou não — usado na tabela
 
   const filtroBar = `<div class="filtro-bar">Mostrando: <strong>${periodoLabel()}</strong> ${diaSel ? `<button class="btn-outline" onclick="limparFiltroDia()">Ver mês inteiro</button>` : ""}</div>`;
 
@@ -724,25 +752,25 @@ function viewHistorico() {
       <span class="audit-detalhe">— ${a.detalhe}</span>
     </div>`).join("");
 
-  // Relatório: acompanha o mesmo período que está sendo visto no calendário — só considera quem já tem 5000
-  const recebidos = itens.filter(item => item.tipo === "recebimento").map(item => item.ref);
-  const concluidos = recebidos.filter(r => r.mov105 && r.mov105Em);
-  const dados = concluidos.map(r => ({ nome: r.numero.slice(-4), minutos: Math.round((r.mov105Em - r.criadoEm) / 60000) }));
+  // Relatório: acompanha o mesmo período que está sendo visto no calendário
+  // Tempo médio conta desde a chegada (quando a fiscal começa a conferência) até a mov. 105
+  const concluidos = lista.filter(r => r.mov105 && r.mov105Em);
+  const dados = concluidos.map(r => ({ nf: r.notaFiscal, minutos: Math.round((r.mov105Em - (r.chegadaEm || r.criadoEm)) / 60000) }));
   const mediaMin = dados.length ? Math.round(dados.reduce((s, d) => s + d.minutos, 0) / dados.length) : null;
-  const emAndamento = recebidos.filter(r => !r.mov105).length;
+  const emAndamento = lista.filter(r => !r.mov105).length;
   const maxMin = Math.max(1, ...dados.map(d => d.minutos));
   const bars = dados.map(d => `
     <div class="bar-col">
       <div class="bar-val">${d.minutos}min</div>
       <div class="bar" style="height:${Math.max(6, (d.minutos / maxMin) * 180)}px"></div>
-      <div class="bar-name">#${d.nome}</div>
+      <div class="bar-name">NF:${d.nf}</div>
     </div>`).join("");
 
   return `
     <div class="section-head">
       <div>
         <h1 class="section-title">Histórico</h1>
-        <div class="section-sub">Tudo que chegou — com 5000 ou ainda pendente. O relatório abaixo acompanha o período selecionado no calendário.</div>
+        <div class="section-sub">Todo fornecedor/NF que chegou aparece aqui — com 5000 já criado ou ainda pendente. O relatório abaixo acompanha o período selecionado no calendário.</div>
       </div>
       <button class="btn-outline" onclick="exportarHistoricoCSV()">📊 Exportar CSV</button>
     </div>
@@ -752,19 +780,19 @@ function viewHistorico() {
         ${filtroBar}
         <table>
           <thead><tr><th>5000</th><th>Forn.</th><th>NF</th><th>Chegou</th><th>Espelho impresso</th><th>Mov. 105</th><th>Status</th></tr></thead>
-          <tbody>${itens.length ? itens.map(linhaRecebimentoHtml).join("") : `<tr><td colspan="7" class="empty-state">Nenhum recebimento em ${periodoLabel()}.</td></tr>`}</tbody>
+          <tbody>${itens.length ? itens.map(item => linhaRecebimentoHtml(item, false)).join("") : `<tr><td colspan="7" class="empty-state">Nenhum recebimento em ${periodoLabel()}.</td></tr>`}</tbody>
         </table>
       </div>
     </div>
 
     <div class="subsection-title" style="margin-top:24px">Relatório — ${periodoLabel()}</div>
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-label">⏱ Tempo médio (5000 → 105)</div><div class="stat-value">${mediaMin != null ? fmtDuration(mediaMin * 60000) : "—"}</div></div>
+      <div class="stat-card"><div class="stat-label">⏱ Tempo médio (chegada → 105)</div><div class="stat-value">${mediaMin != null ? fmtDuration(mediaMin * 60000) : "—"}</div></div>
       <div class="stat-card"><div class="stat-label" style="color:var(--green)">✓ Concluídos</div><div class="stat-value">${concluidos.length}</div></div>
       <div class="stat-card"><div class="stat-label" style="color:var(--amber)">⏱ Em andamento</div><div class="stat-value">${emAndamento}</div></div>
     </div>
     <div class="chart-panel">
-      <div class="chart-title">Minutos até o 105, por recebimento concluído</div>
+      <div class="chart-title">Minutos até o 105 (desde a chegada), por recebimento concluído</div>
       ${dados.length ? `<div class="bars">${bars}</div>` : `<div class="empty-state">Nenhum recebimento concluído em ${periodoLabel()}.</div>`}
       <div style="text-align:right; margin-top:10px"><button class="btn-outline" onclick="exportarRelatorioCSV()">📊 Exportar CSV do relatório</button></div>
     </div>
@@ -774,19 +802,19 @@ function viewHistorico() {
 }
 
 function exportarHistoricoCSV() {
-  const itens = recebimentosNoPeriodo();
+  const itens = itensNoPeriodo();
   const bloqueadas = notasComDivergenciaAberta();
-  const headers = ["5000", "Fornecedor", "NF", "Chegou em", "Transporte", "Espelho impresso", "Mov. 105", "Status"];
+  const headers = ["5000", "Fornecedor", "NF", "Chegou em", "Espelho impresso", "Mov. 105", "Status"];
   const rows = itens.map(item => {
     if (item.tipo === "pendente") {
       const p = item.ref;
       const st = statusChegada(item);
-      return [p.numero5000 || "Aguardando fiscal", p.fornecedor, p.notaFiscal, fmtTime(p.chegadaEm), transporteLabel(p), "Não", "Não", st.label];
+      return ["Aguardando fiscal", p.fornecedor, p.notaFiscal, fmtTime(p.chegadaEm), "—", "—", st.label];
     }
     const r = item.ref;
     const bloqueado = bloqueadas.has(r.notaFiscal);
     const status = r.mov105 ? "Concluído" : bloqueado ? "Bloqueado" : "Em andamento";
-    return [r.numero, r.fornecedor, r.notaFiscal, fmtTime(r.chegadaEm || r.criadoEm), transporteLabel(r), r.espelhoImpresso ? fmtTime(r.espelhoImpressoEm) : "Não", r.mov105 ? fmtTime(r.mov105Em) : "Não", status];
+    return [r.numero, r.fornecedor, r.notaFiscal, fmtTime(r.chegadaEm || r.criadoEm), r.espelhoImpresso ? fmtTime(r.espelhoImpressoEm) : "Não", r.mov105 ? fmtTime(r.mov105Em) : "Não", status];
   });
   exportarCSV(headers, rows, `doca105-historico-${periodoLabel().replace(/\s/g, "-")}.csv`);
 }
@@ -794,8 +822,8 @@ function exportarHistoricoCSV() {
 function exportarRelatorioCSV() {
   const lista = recebimentosNoPeriodo();
   const concluidos = lista.filter(r => r.mov105 && r.mov105Em);
-  const headers = ["5000", "Fornecedor", "NF", "Criado em", "Concluído em", "Minutos (5000 → 105)"];
-  const rows = concluidos.map(r => [r.numero, r.fornecedor, r.notaFiscal, fmtTime(r.criadoEm), fmtTime(r.mov105Em), Math.round((r.mov105Em - r.criadoEm) / 60000)]);
+  const headers = ["5000", "Fornecedor", "NF", "Chegou em", "Concluído em", "Minutos (chegada → 105)"];
+  const rows = concluidos.map(r => [r.numero, r.fornecedor, r.notaFiscal, fmtTime(r.chegadaEm || r.criadoEm), fmtTime(r.mov105Em), Math.round((r.mov105Em - (r.chegadaEm || r.criadoEm)) / 60000)]);
   exportarCSV(headers, rows, `doca105-relatorio-${periodoLabel().replace(/\s/g, "-")}.csv`);
 }
 
@@ -873,7 +901,7 @@ function salvarUsuarioAtual() {
 // ---------- Modal: Criar 5000 ----------
 function abrirNovo5000(pendenteId) {
   const p = state.pendentes.find(p => p.id === pendenteId);
-  state.novoRecebimentoBase = { pendenteId, fornecedor: p.fornecedor, notaFiscal: p.notaFiscal, chegadaEm: p.chegadaEm, transporteTipo: p.transporteTipo, transporteNome: p.transporteNome };
+  state.novoRecebimentoBase = { pendenteId, fornecedor: p.fornecedor, notaFiscal: p.notaFiscal, chegadaEm: p.chegadaEm };
   document.getElementById("f5000-fornecedor").textContent = p.fornecedor;
   document.getElementById("f5000-notafiscal").textContent = p.notaFiscal;
   document.getElementById("f5000-numero").value = "";
@@ -883,25 +911,7 @@ function abrirNovo5000(pendenteId) {
 }
 
 let modalPendenteChecks = { pedidoOk: false, valorOk: false, aprovacaoOk: false };
-
-function atualizarVisibilidadeTransportadora() {
-  const tipo = document.getElementById("fp-transporte-tipo").value;
-  document.getElementById("fp-transporte-nome").style.display = tipo === "transportadora" ? "block" : "none";
-}
-
-let modalPendenteContext = { esperadoId: null };
-
-function abrirModalNovaChegada(fornecedorPrefill, esperadoId) {
-  resetModalPendenteChecks();
-  modalPendenteContext = { esperadoId: esperadoId || null };
-  document.getElementById("fp-fornecedor").value = fornecedorPrefill || "";
-  document.getElementById("fp-notafiscal").value = "";
-  document.getElementById("fp-transporte-tipo").value = "transportadora";
-  document.getElementById("fp-transporte-nome").value = "";
-  atualizarVisibilidadeTransportadora();
-  document.getElementById("fp-submit").disabled = !(fornecedorPrefill && fornecedorPrefill.trim());
-  abrirModal("modalNovaPendente");
-}
+let chegadasRegistradasNestaSessao = 0;
 
 function toggleModalPendente(campo) {
   modalPendenteChecks[campo] = !modalPendenteChecks[campo];
@@ -911,9 +921,12 @@ function toggleModalPendente(campo) {
 
 function resetModalPendenteChecks() {
   modalPendenteChecks = { pedidoOk: false, valorOk: false, aprovacaoOk: false };
+  chegadasRegistradasNestaSessao = 0;
   ["pedidoOk", "valorOk", "aprovacaoOk"].forEach(campo => {
     document.getElementById(`fp-check-${campo}`).classList.remove("on");
   });
+  const confirm = document.getElementById("fp-confirm");
+  if (confirm) confirm.textContent = "";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -931,13 +944,11 @@ document.addEventListener("DOMContentLoaded", () => {
     state.recebimentos.unshift({
       id: Date.now(), numero, fornecedor: base.fornecedor, notaFiscal: base.notaFiscal,
       chegadaEm: base.chegadaEm || new Date(),
-      transporteTipo: base.transporteTipo, transporteNome: base.transporteNome,
       criadoEm: new Date(), espelhoImpresso: false, espelhoImpressoEm: null, mov105: false, mov105Em: null,
     });
     const pend = state.pendentes.find(p => p.id === base.pendenteId);
     if (pend) { pend.convertido = true; pend.numero5000 = numero; }
     logAuditoria("Criou 5000", `NF ${base.notaFiscal} — ${base.fornecedor} — nº ${numero}`);
-    state.tab = "historico";
     fecharModal("modalNovo5000");
     render();
   });
@@ -1016,10 +1027,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("fp-submit").addEventListener("click", () => {
     const fornecedor = document.getElementById("fp-fornecedor").value;
     const notaFiscal = document.getElementById("fp-notafiscal").value;
-    const transporteTipo = document.getElementById("fp-transporte-tipo").value;
-    const transporteNome = document.getElementById("fp-transporte-nome").value.trim();
-    const novoPendente = {
-      id: Date.now(),
+    state.pendentes.unshift({
+      id: Date.now() + Math.random(),
       fornecedor,
       notaFiscal,
       chegadaEm: new Date(),
@@ -1030,29 +1039,40 @@ document.addEventListener("DOMContentLoaded", () => {
       convertido: false,
       numero5000: null,
       observacao: "",
-      transporteTipo,
-      transporteNome,
-    };
-    state.pendentes.unshift(novoPendente);
-    if (modalPendenteContext.esperadoId) {
-      const esp = state.esperados.find(e => e.id === modalPendenteContext.esperadoId);
-      if (esp) { esp.chegou = true; esp.pendenteId = novoPendente.id; }
-      modalPendenteContext.esperadoId = null;
-    }
+    });
     logAuditoria("Registrou chegada", `NF ${notaFiscal} — ${fornecedor}`);
-    // Não fecha o modal nem troca de tela — permite lançar vários seguidos
-    document.getElementById("fp-fornecedor").value = "";
-    document.getElementById("fp-notafiscal").value = "";
-    document.getElementById("fp-transporte-tipo").value = "transportadora";
-    document.getElementById("fp-transporte-nome").value = "";
+    chegadasRegistradasNestaSessao++;
+    camposPend.forEach(id => (document.getElementById(id).value = ""));
     document.getElementById("fp-submit").disabled = true;
     resetModalPendenteChecks();
-    render();
-    const feedback = document.getElementById("fp-feedback");
-    feedback.textContent = `✓ ${fornecedor} — NF ${notaFiscal} adicionada`;
-    feedback.classList.add("show");
-    setTimeout(() => feedback.classList.remove("show"), 2200);
+    document.getElementById("fp-confirm").textContent = `✓ ${fornecedor} — NF ${notaFiscal} registrada. (${chegadasRegistradasNestaSessao} nesta leva) Pode add a próxima.`;
     document.getElementById("fp-fornecedor").focus();
+    render(); // atualiza a lista atrás, mas mantém o modal aberto pra próxima chegada
+  });
+
+  // Modal: Nova previsão de chegada
+  const camposPrev = ["prev-fornecedor"];
+  function checarPrevisao() {
+    document.getElementById("prev-submit").disabled = document.getElementById("prev-fornecedor").value.trim().length === 0;
+  }
+  camposPrev.forEach(id => document.getElementById(id).addEventListener("input", checarPrevisao));
+
+  document.getElementById("prev-submit").addEventListener("click", () => {
+    const fornecedor = document.getElementById("prev-fornecedor").value.trim();
+    const notaFiscal = document.getElementById("prev-notafiscal").value.trim();
+    const transportadora = document.getElementById("prev-transportadora").value.trim();
+    state.previsoes.unshift({
+      id: Date.now() + Math.random(),
+      fornecedor, notaFiscal, transportadora,
+      chegou: false, chegouEm: null,
+      criadoEm: new Date(),
+    });
+    logAuditoria("Adicionou previsão de chegada", `${fornecedor}${notaFiscal ? " — NF " + notaFiscal : ""}`);
+    document.getElementById("prev-confirm").textContent = `✓ ${fornecedor} adicionado. Pode add o próximo.`;
+    ["prev-fornecedor", "prev-notafiscal", "prev-transportadora"].forEach(id => (document.getElementById(id).value = ""));
+    document.getElementById("prev-submit").disabled = true;
+    document.getElementById("prev-fornecedor").focus();
+    render();
   });
 
   document.querySelectorAll("[data-close]").forEach(btn => {

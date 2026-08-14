@@ -1,132 +1,141 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DOCA·105 — Sistema de Recebimento</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOCA·105 — Sistema de Recebimento</title>
+<link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
 
-  <!-- Barra mobile com hambúrguer -->
-  <div class="mobile-topbar">
-    <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
-    <span class="mobile-topbar-title">📦 DOCA·105</span>
-  </div>
-  <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
+<!-- Barra mobile com hambúrguer -->
+<div class="mobile-topbar">
+  <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
+  <span class="mobile-topbar-title">📦 DOCA·105</span>
+</div>
+<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
 
-  <div class="app">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <span class="brand-icon">📦</span>
-        <div>
-          <div class="brand-text">DOCA·105</div>
-          <div class="brand-sub">Sistema de Recebimento</div>
-        </div>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-icon">📦</span>
+      <div>
+        <div class="brand-text">DOCA·105</div>
+        <div class="brand-sub">Sistema de Recebimento</div>
       </div>
-      <nav id="nav"></nav>
-    </aside>
-
-    <!-- Main -->
-    <main class="main" id="main"></main>
-  </div>
-
-  <!-- Modal: Criar 5000 -->
-  <div class="modal-overlay" id="modalNovo5000">
-    <div class="modal">
-      <div class="modal-head">
-        <div class="modal-title">Criar 5000</div>
-        <button class="modal-close" data-close="modalNovo5000">✕</button>
-      </div>
-      <label class="field-label">Fornecedor</label>
-      <div class="field-readonly" id="f5000-fornecedor"></div>
-      <label class="field-label">Nota fiscal</label>
-      <div class="field-readonly mono" id="f5000-notafiscal"></div>
-      <label class="field-label">Número do 5000 (do SAP)</label>
-      <input class="field-input mono" id="f5000-numero" placeholder="Ex: 5000867123" inputmode="numeric">
-      <div class="field-hint" id="f5000-hint">Formato esperado: 5000 + 6 dígitos (ex: 5000867123)</div>
-      <button class="btn-primary btn-block" id="f5000-submit" disabled>Criar recebimento</button>
     </div>
-  </div>
+    <nav id="nav"></nav>
+  </aside>
 
-  <!-- Modal: Nova divergência -->
-  <div class="modal-overlay" id="modalDivergencia">
-    <div class="modal">
-      <div class="modal-head">
-        <div class="modal-title">Registrar divergência</div>
-        <button class="modal-close" data-close="modalDivergencia">✕</button>
-      </div>
-      <label class="field-label">Nota fiscal</label>
-      <input class="field-input mono" id="fd-notafiscal" placeholder="Ex: NF-12345">
-      <label class="field-label">Fornecedor</label>
-      <input class="field-input" id="fd-fornecedor" placeholder="Nome do fornecedor">
-      <label class="field-label">Tipo</label>
-      <select class="field-input" id="fd-tipo">
-        <option value="quantidade_incorreta">Quantidade incorreta</option>
-        <option value="material_incorreto">Material incorreto</option>
-        <option value="nf_divergente">NF divergente</option>
-        <option value="pedido_incorreto">Pedido incorreto</option>
-        <option value="preco_divergente">Preço divergente</option>
-        <option value="material_danificado">Material danificado</option>
-        <option value="fornecedor_incorreto">Fornecedor incorreto</option>
-        <option value="outros">Outros</option>
-      </select>
-      <label class="field-label">Descrição</label>
-      <input class="field-input" id="fd-descricao" placeholder="O que está divergente">
-      <label class="field-label">Evidências</label>
-      <div class="evidencia-upload">
-        <label class="evidencia-btn" for="fd-evidencias">📷 Adicionar foto ou documento</label>
-        <input type="file" id="fd-evidencias" accept="image/*,.pdf" multiple style="display:none">
-      </div>
-      <div class="evidencia-preview" id="fd-evidencias-preview"></div>
-      <button class="btn-danger btn-block" id="fd-submit" disabled>Registrar divergência</button>
+  <!-- Main -->
+  <main class="main" id="main"></main>
+</div>
+
+<!-- Modal: Criar 5000 -->
+<div class="modal-overlay" id="modalNovo5000">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Criar 5000</div>
+      <button class="modal-close" data-close="modalNovo5000">✕</button>
     </div>
+    <label class="field-label">Fornecedor</label>
+    <div class="field-readonly" id="f5000-fornecedor"></div>
+    <label class="field-label">Nota fiscal</label>
+    <div class="field-readonly mono" id="f5000-notafiscal"></div>
+    <label class="field-label">Número do 5000 (do SAP)</label>
+    <input class="field-input mono" id="f5000-numero" placeholder="Ex: 5000867123" inputmode="numeric">
+    <div class="field-hint" id="f5000-hint">Formato esperado: 5000 + 6 dígitos (ex: 5000867123)</div>
+    <button class="btn-primary btn-block" id="f5000-submit" disabled>Criar recebimento</button>
   </div>
+</div>
 
-  <!-- Modal: Registrar chegada -->
-  <div class="modal-overlay" id="modalNovaPendente">
-    <div class="modal">
-      <div class="modal-head">
-        <div class="modal-title">Registrar chegada de NF</div>
-        <button class="modal-close" data-close="modalNovaPendente">✕</button>
-      </div>
-      <label class="field-label">Fornecedor</label>
-      <input class="field-input" id="fp-fornecedor" placeholder="Nome do fornecedor">
-      <label class="field-label">Nota fiscal</label>
-      <input class="field-input mono" id="fp-notafiscal" placeholder="Ex: NF-12345">
-      <label class="field-label">Conferência da fiscal</label>
-      <div class="modal-checks" id="fp-checks">
-        <label class="check-field" onclick="toggleModalPendente('pedidoOk'); return false;">
-          <span class="toggle" id="fp-check-pedidoOk"><span class="knob"></span></span>
-          <span class="lbl">Pedido</span>
-        </label>
-        <label class="check-field" onclick="toggleModalPendente('valorOk'); return false;">
-          <span class="toggle" id="fp-check-valorOk"><span class="knob"></span></span>
-          <span class="lbl">Valor</span>
-        </label>
-        <label class="check-field" onclick="toggleModalPendente('aprovacaoOk'); return false;">
-          <span class="toggle" id="fp-check-aprovacaoOk"><span class="knob"></span></span>
-          <span class="lbl">Aprovação</span>
-        </label>
-      </div>
-      <div class="field-hint show" style="margin-top:8px">Não precisa marcar tudo agora — dá pra completar depois em
-        Pendentes. O modal continua aberto pra você lançar vários seguidos.</div>
-      <label class="field-label">Transporte</label>
-      <select class="field-input" id="fp-transporte-tipo" onchange="atualizarVisibilidadeTransportadora()">
-        <option value="transportadora">Transportadora</option>
-        <option value="por_conta">Por conta (do fornecedor)</option>
-        <option value="interno">Interno (frota própria)</option>
-      </select>
-      <input class="field-input" id="fp-transporte-nome" placeholder="Nome da transportadora">
-      <div class="fp-feedback" id="fp-feedback"></div>
-      <button class="btn-primary btn-block" id="fp-submit" disabled>Adicionar à lista de pendentes</button>
+<!-- Modal: Nova divergência -->
+<div class="modal-overlay" id="modalDivergencia">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Registrar divergência</div>
+      <button class="modal-close" data-close="modalDivergencia">✕</button>
     </div>
+    <label class="field-label">Nota fiscal</label>
+    <input class="field-input mono" id="fd-notafiscal" placeholder="Ex: NF-12345">
+    <label class="field-label">Fornecedor</label>
+    <input class="field-input" id="fd-fornecedor" placeholder="Nome do fornecedor">
+    <label class="field-label">Tipo</label>
+    <select class="field-input" id="fd-tipo">
+      <option value="quantidade_incorreta">Quantidade incorreta</option>
+      <option value="material_incorreto">Material incorreto</option>
+      <option value="nf_divergente">NF divergente</option>
+      <option value="pedido_incorreto">Pedido incorreto</option>
+      <option value="preco_divergente">Preço divergente</option>
+      <option value="material_danificado">Material danificado</option>
+      <option value="fornecedor_incorreto">Fornecedor incorreto</option>
+      <option value="outros">Outros</option>
+    </select>
+    <label class="field-label">Descrição</label>
+    <input class="field-input" id="fd-descricao" placeholder="O que está divergente">
+    <label class="field-label">Evidências</label>
+    <div class="evidencia-upload">
+      <label class="evidencia-btn" for="fd-evidencias">📷 Adicionar foto ou documento</label>
+      <input type="file" id="fd-evidencias" accept="image/*,.pdf" multiple style="display:none">
+    </div>
+    <div class="evidencia-preview" id="fd-evidencias-preview"></div>
+    <button class="btn-danger btn-block" id="fd-submit" disabled>Registrar divergência</button>
   </div>
+</div>
 
-  <script src="app.js"></script>
+<!-- Modal: Registrar chegada -->
+<div class="modal-overlay" id="modalNovaPendente">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Registrar chegada de NF</div>
+      <button class="modal-close" data-close="modalNovaPendente">✕</button>
+    </div>
+    <label class="field-label">Fornecedor</label>
+    <input class="field-input" id="fp-fornecedor" placeholder="Nome do fornecedor">
+    <label class="field-label">Nota fiscal</label>
+    <input class="field-input mono" id="fp-notafiscal" placeholder="Ex: NF-12345">
+    <label class="field-label">Conferência da fiscal</label>
+    <div class="modal-checks" id="fp-checks">
+      <label class="check-field" onclick="toggleModalPendente('pedidoOk'); return false;">
+        <span class="toggle" id="fp-check-pedidoOk"><span class="knob"></span></span>
+        <span class="lbl">Pedido</span>
+      </label>
+      <label class="check-field" onclick="toggleModalPendente('valorOk'); return false;">
+        <span class="toggle" id="fp-check-valorOk"><span class="knob"></span></span>
+        <span class="lbl">Valor</span>
+      </label>
+      <label class="check-field" onclick="toggleModalPendente('aprovacaoOk'); return false;">
+        <span class="toggle" id="fp-check-aprovacaoOk"><span class="knob"></span></span>
+        <span class="lbl">Aprovação</span>
+      </label>
+    </div>
+    <div class="field-hint show" style="margin-top:8px">Não precisa marcar tudo agora — dá pra completar depois em Pendentes.</div>
+    <div class="field-hint" id="fp-confirm" style="color:var(--green); margin-top:0; display:block"></div>
+    <button class="btn-primary btn-block" id="fp-submit" disabled>+ Registrar e continuar</button>
+    <button class="btn-outline btn-block" style="margin-top:8px" data-close="modalNovaPendente">Fechar</button>
+  </div>
+</div>
+
+<!-- Modal: Nova previsão de chegada -->
+<div class="modal-overlay" id="modalPrevisao">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Nova previsão de chegada</div>
+      <button class="modal-close" data-close="modalPrevisao">✕</button>
+    </div>
+    <label class="field-label">Fornecedor</label>
+    <input class="field-input" id="prev-fornecedor" placeholder="Nome do fornecedor">
+    <label class="field-label">Nota fiscal (se já souber)</label>
+    <input class="field-input mono" id="prev-notafiscal" placeholder="Ex: NF-12345">
+    <label class="field-label">Transportadora</label>
+    <input class="field-input" id="prev-transportadora" placeholder="Nome da transportadora">
+    <div class="field-hint" id="prev-confirm" style="color:var(--green); margin-top:0; display:block"></div>
+    <button class="btn-primary btn-block" id="prev-submit" disabled>+ Adicionar e continuar</button>
+    <button class="btn-outline btn-block" style="margin-top:8px" data-close="modalPrevisao">Fechar</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
 </body>
-
 </html>

@@ -33,21 +33,22 @@ Pra usar: baixa os três na **mesma pasta** e abre o `index.html` no navegador.
 
 ### 1. Dashboard
 - Visão geral com números do dia (chegadas, pendentes, divergências, concluídos) — o card de "Chegaram hoje" mostra a variação em relação a ontem.
+- **Previsão de chegadas — hoje**: uma lista à parte (não gera 5000, é só uma conferência visual) onde dá pra cadastrar de manhã quem é esperado no dia (fornecedor, NF se já souber, transportadora) e ir marcando "chegou" conforme os caminhões aparecem. Também dá pra adicionar, a qualquer momento, um fornecedor que não estava previsto. **Isso não substitui o registro em Recebimentos** — são duas coisas separadas: a previsão é só pra visibilidade do time; o que gera o 5000 continua sendo registrado em Recebimentos.
 - Gráfico de **recebimentos dos últimos 7 dias** e um gráfico de **divergências por tipo** (rosca), os dois puxados dos dados reais que forem sendo lançados no sistema — sem número inventado.
-- Tabela com os últimos 5 recebimentos, no mesmo formato usado em todo o sistema.
+- Tabela com os últimos 5 fornecedores que chegaram — **aparece assim que a chegada é registrada em Recebimentos, mesmo antes de ter 5000**. Espelho/mov.105 aparecem aqui só como texto informativo — quem clica é o Recebimentos.
 
 ### 2. Recebimentos
-- É aqui que a chegada da NF é registrada (**+ Registrar chegada**): fornecedor, número da NF e, se já souber, os três toggles de conferência (opcional nessa hora).
-- Ao salvar, o sistema pula automaticamente pra aba **Pendentes**, onde a fiscal termina a conferência e cria o 5000.
+- **É a única tela onde se registra uma nova chegada** (**+ Registrar chegada**): fornecedor e número da NF, e se já souber, os três toggles de conferência (opcional nessa hora).
+- Ao salvar, o modal **continua aberto** — os campos limpam e o foco volta pro fornecedor, pra dar pra registrar vários seguidos sem trocar de tela (útil quando chega um monte de caminhão de uma vez). Um aviso verde confirma cada NF registrada. Só fecha quando você clicar em "Fechar".
 - A tela mostra **tudo que chegou hoje** — tanto o que ainda está em Pendentes (linha cinza, sem 5000 ainda) quanto o que já tem 5000 — numa tabela só, com busca (NF, fornecedor ou 5000) e filtros de status.
-- **É aqui que se marca espelho impresso e mov. 105**, assim que a fiscal deixar o número do 5000 — os toggles ficam direto na linha da tabela, igual ao Histórico.
+- **É aqui — e só aqui — que se marca espelho impresso e mov. 105**, assim que a fiscal deixar o número do 5000. Os toggles ficam direto na linha da tabela e só são clicáveis nesta aba: em Dashboard e Histórico eles aparecem como informação, sem clique.
 - Pra ver dias anteriores, tem um link direto pro Histórico.
 
 ### 3. Pendentes
 - Lista de tudo que chegou e ainda não tem 5000 (ou já tem, mas fica registrado pro levantamento do dia).
 - Os três toggles — **Pedido**, **Valor**, **Aprovação** — são marcados aqui pela fiscal.
 - O botão **+ Criar 5000** só libera quando os três toggles estiverem marcados.
-- Ao criar o 5000, a fiscal digita o número manualmente (formato `5000` + 6 dígitos, ex: `5000867123` — é o número gerado no SAP, não o sistema que inventa).
+- Ao criar o 5000, a fiscal digita o número manualmente (formato `5000` + 6 dígitos, ex: `5000867123` — é o número gerado no SAP, não o sistema que inventa). **A tela continua em Pendentes** depois de criar — não pula pra outro lugar.
 - **O item não desaparece da lista** depois de virar 5000 — fica marcado com o selo "5000 criado: [número]" (clicável, copia o número).
 - **Filtros** (Todos / Falta Pedido / Falta Valor / Falta Aprovação / Liberado p/ 5000 / Já com 5000) — pra isolar rápido quem está travando o processo e tirar um print pra cobrar quem precisa resolver.
 
@@ -57,7 +58,9 @@ Duas seções:
 - **Divergências registradas** — cadastradas manualmente (**+ Registrar divergência**): NF, fornecedor, tipo (Quantidade incorreta / Material incorreto / NF divergente / Pedido incorreto / Preço divergente / Material danificado / Fornecedor incorreto / Outros), descrição e **evidências** (fotos ou documentos anexados — ficam guardados só na memória da página, como o resto dos dados). Enquanto estiver "Aberta", bloqueia o 105 daquela NF. Pode marcar como "Resolvida" quando corrigir.
 
 ### 5. Histórico (com relatório junto)
-- Uma linha por recebimento (com ou sem 5000 ainda), no mesmo formato de tabela usado em todo o sistema, com **agenda mensal** ao lado: dias com recebimento aparecem com uma bolinha; clicar num dia filtra a tabela só pra aquele dia. Setas `‹ ›` trocam de mês. É aqui que ficam **todos os dias**, diferente de Recebimentos, que só mostra hoje.
+- Uma linha por recebimento — **com 5000 ou não** (todo fornecedor/NF que chegar aparece aqui, mesmo pendente) — no mesmo formato de tabela usado em todo o sistema, com **agenda mensal** ao lado: dias com chegada aparecem com uma bolinha; clicar num dia filtra a tabela só pra aquele dia. Setas `‹ ›` trocam de mês. É aqui que ficam **todos os dias**, diferente de Recebimentos, que só mostra hoje.
+- **É só consulta** — espelho impresso e mov.105 aparecem como texto simples (✓ hora, ou "—"), sem toggle nem clique nenhum. Quem faz o recebimento não precisa entrar aqui pra tocar o processo; isso acontece todo em Recebimentos.
+- **Tempo médio do relatório conta a partir da chegada** (quando a fiscal começa a conferência em Pendentes) até a mov. 105 — não a partir da criação do 5000. O gráfico de barras mostra o tempo de cada NF concluída.
 - **O relatório logo abaixo da tabela acompanha o período que está sendo visto**: se você está no mês de agosto, o tempo médio e o gráfico são de agosto; se navegar pra julho, viram os números de julho; se clicar num dia específico, ficam só daquele dia.
 - **Exportar CSV** — um botão pra tabela de recebimentos do período, outro pro relatório (tempos de 5000 até 105) — os dois já filtrados pelo período que estiver sendo visto.
 - **Trilha de auditoria** no fim da página, com as últimas 15 atividades do sistema (quem fez o quê e quando).
