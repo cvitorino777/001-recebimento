@@ -615,10 +615,15 @@ function togglePendente(id, campo) {
 function excluirPendente(id) {
   const p = state.pendentes.find(p => p.id === id);
   if (!p || p.convertido) return;
-  if (!confirm(`Excluir a chegada de ${p.fornecedor} (NF ${p.notaFiscal})? Essa ação não pode ser desfeita.`)) return;
-  state.pendentes = state.pendentes.filter(x => x.id !== id);
-  logAuditoria("Excluiu chegada", `NF ${p.notaFiscal} — ${p.fornecedor}`);
-  render();
+  confirmarAcao(
+    "Excluir chegada",
+    `Excluir a chegada de ${p.fornecedor} (NF ${p.notaFiscal})? Essa ação não pode ser desfeita.`,
+    () => {
+      state.pendentes = state.pendentes.filter(x => x.id !== id);
+      logAuditoria("Excluiu chegada", `NF ${p.notaFiscal} — ${p.fornecedor}`);
+      render();
+    }
+  );
 }
 
 // ===== Divergências =====
@@ -668,6 +673,21 @@ function viewDivergencias() {
     </div>`;
   }).join("");
 
+  const ocorrencias = state.recebimentos
+    .filter(r => r.estornado)
+    .sort((a, b) => b.estornadoEm - a.estornadoEm);
+  const ocorrenciasRows = ocorrencias.map(r => `
+    <div class="card left-red">
+      <div class="div-body" style="flex:1">
+        <div class="div-top">
+          <span class="nf">${r.notaFiscal}</span>
+          <span class="pill pill-gray">Estornado</span>
+        </div>
+        <div class="div-desc">${r.motivoEstorno || "Sem motivo registrado."}</div>
+        <div class="div-meta">${r.fornecedor} · nº ${r.numero} · estornado em ${fmtTime(r.estornadoEm)}</div>
+      </div>
+    </div>`).join("");
+
   return `
     <div class="section-head">
       <div>
@@ -679,7 +699,10 @@ function viewDivergencias() {
     <div class="subsection-title">Aguardando conferência do compras</div>
     <div class="card-list">${atrasoRows || `<div class="empty-state">Nada pendente de compras no momento.</div>`}</div>
     <div class="subsection-title">Divergências registradas</div>
-    <div class="card-list">${divRows || `<div class="empty-state">Nenhuma divergência registrada.</div>`}</div>`;
+    <div class="card-list">${divRows || `<div class="empty-state">Nenhuma divergência registrada.</div>`}</div>
+    <div class="subsection-title">Ocorrências</div>
+    <div class="section-sub" style="margin-top:-8px; margin-bottom:12px">Indicador do que aconteceu no processo — por enquanto, lançamentos estornados (o motivo é o que a fiscal ou o recebimento escreveu na hora do estorno).</div>
+    <div class="card-list">${ocorrenciasRows || `<div class="empty-state">Nenhuma ocorrência registrada.</div>`}</div>`;
 }
 
 function atualizarNotaDivergencia(id, valor) {
@@ -987,6 +1010,14 @@ document.addEventListener("DOMContentLoaded", () => {
     render();
   });
 
+  // Modal: Confirmação genérica
+  document.getElementById("confirm-ok-btn").addEventListener("click", () => {
+    fecharModal("modalConfirmacao");
+    const cb = confirmacaoCallback;
+    confirmacaoCallback = null;
+    if (cb) cb();
+  });
+
   // Modal: Estornar 5000
   document.getElementById("estorno-motivo").addEventListener("input", () => {
     document.getElementById("estorno-submit").disabled = document.getElementById("estorno-motivo").value.trim().length === 0;
@@ -1143,6 +1174,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function abrirModal(id) { document.getElementById(id).classList.add("open"); }
 function fecharModal(id) { document.getElementById(id).classList.remove("open"); }
+
+let confirmacaoCallback = null;
+function confirmarAcao(titulo, mensagem, onConfirm) {
+  document.getElementById("confirm-titulo").textContent = titulo;
+  document.getElementById("confirm-mensagem").textContent = mensagem;
+  confirmacaoCallback = onConfirm;
+  abrirModal("modalConfirmacao");
+}
 
 // Faz o Enter, dentro de um campo de texto, clicar no botão de confirmar (se não estiver desabilitado)
 function habilitarEnter(inputIds, submitId) {

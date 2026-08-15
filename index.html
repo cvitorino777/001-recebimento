@@ -152,6 +152,21 @@
   </div>
 </div>
 
+<!-- Modal: Confirmação genérica -->
+<div class="modal-overlay" id="modalConfirmacao">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="confirm-titulo">Confirmar ação</div>
+      <button class="modal-close" data-close="modalConfirmacao">✕</button>
+    </div>
+    <div class="section-sub" id="confirm-mensagem" style="margin-bottom:20px"></div>
+    <div style="display:flex; gap:10px">
+      <button class="btn-outline" style="flex:1; justify-content:center" data-close="modalConfirmacao">Cancelar</button>
+      <button class="btn-danger" style="flex:1" id="confirm-ok-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

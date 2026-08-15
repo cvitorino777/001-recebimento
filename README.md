@@ -42,7 +42,7 @@ Pra usar: baixa os três na **mesma pasta** e abre o `index.html` no navegador.
 - Ao salvar, o modal **continua aberto** — os campos limpam e o foco volta pro fornecedor, pra dar pra registrar vários seguidos sem trocar de tela (útil quando chega um monte de caminhão de uma vez). Um aviso verde confirma cada NF registrada. Só fecha quando você clicar em "Fechar".
 - A tela mostra **tudo que chegou hoje** — tanto o que ainda está em Pendentes (linha cinza, sem 5000 ainda) quanto o que já tem 5000 — numa tabela só, com busca (NF, fornecedor ou 5000) e filtros de status.
 - **É aqui — e só aqui — que se marca espelho impresso e mov. 105**, assim que a fiscal deixar o número do 5000. Os toggles ficam direto na linha da tabela e só são clicáveis nesta aba: em Dashboard e Histórico eles aparecem como informação, sem clique.
-- **↩ Estornar** — se um 5000 foi lançado errado, dá pra estornar direto na linha (pede um motivo). O recebimento fica marcado como "Estornado" (linha riscada) e trava — não dá mais pra clicar em espelho impresso nem mov. 105. O motivo fica registrado e aparece embaixo do status.
+- **↩ Estornar** — se um 5000 foi lançado errado, dá pra estornar direto na linha (pede um motivo). O recebimento fica marcado como "Estornado" (linha riscada) e trava — não dá mais pra clicar em espelho impresso nem mov. 105. O motivo fica registrado e aparece embaixo do status — e também aparece em Divergências, na seção Ocorrências.
 - Pra ver dias anteriores, tem um link direto pro Histórico.
 
 ### 3. Pendentes
@@ -55,9 +55,10 @@ Pra usar: baixa os três na **mesma pasta** e abre o `index.html` no navegador.
 - **Filtros** (Todos / Falta Pedido / Falta Valor / Falta Aprovação / Liberado p/ 5000 / Já com 5000) — pra isolar rápido quem está travando o processo e tirar um print pra cobrar quem precisa resolver.
 
 ### 4. Divergências
-Duas seções:
+Três seções:
 - **Aguardando conferência do compras** — gerada automaticamente a partir dos Pendentes que ainda não têm os três OKs, mostrando o que falta (Pedido / Valor / Aprovação) e um campo livre pra anotar observação.
 - **Divergências registradas** — cadastradas manualmente (**+ Registrar divergência**): NF, fornecedor, tipo (Quantidade incorreta / Material incorreto / NF divergente / Pedido incorreto / Preço divergente / Material danificado / Fornecedor incorreto / Outros), descrição e **evidências** (fotos ou documentos anexados — ficam guardados só na memória da página, como o resto dos dados). Enquanto estiver "Aberta", bloqueia o 105 daquela NF. Pode marcar como "Resolvida" quando corrigir.
+- **Ocorrências** — indicador do que aconteceu no processo. Por enquanto mostra os lançamentos estornados (NF, fornecedor, motivo, quando), puxado automaticamente do que for estornado em Recebimentos — não precisa cadastrar nada aqui, só é um espelho pra dar visibilidade.
 
 ### 5. Histórico (com relatório junto)
 - Uma linha por recebimento — **com 5000 ou não** (todo fornecedor/NF que chegar aparece aqui, mesmo pendente) — no mesmo formato de tabela usado em todo o sistema, com **agenda mensal** ao lado: dias com chegada aparecem com uma bolinha; clicar num dia filtra a tabela só pra aquele dia. Setas `‹ ›` trocam de mês. É aqui que ficam **todos os dias**, diferente de Recebimentos, que só mostra hoje.
