@@ -173,7 +173,7 @@ function deltaChegadas() {
   return { pct, up: pct >= 0 };
 }
 
-const DONUT_COLORS = ["#2E3E52", "#D98E2B", "#B8462F", "#3A5A8C", "#3E7A5C", "#8A6FB0", "#5CA7A0", "#B0894F"];
+const DONUT_COLORS = ["#2E4A5E", "#C98A12", "#9C4128", "#3A5A8C", "#386B52", "#6E5A8C", "#4C8078", "#8C6A3D"];
 
 function divergenciasPorTipo() {
   const contagem = {};
@@ -294,26 +294,26 @@ function viewDashboard() {
 
     <div class="dash-stat-row">
       <div class="stat-card stat-card-dash">
-        <span class="stat-icon-badge" style="background:#E5EAF3">📥</span>
+        <span class="stat-icon-badge">📥</span>
         ${delta ? `<span class="delta-chip ${delta.up ? "up" : "down"}">${delta.up ? "▲" : "▼"} ${Math.abs(delta.pct)}%</span>` : ""}
         <div class="stat-label" style="margin-top:8px">Chegaram hoje</div>
         <div class="stat-value">${chegadasHojeCount}</div>
         <div class="dash-stat-sub">vs. ontem</div>
       </div>
       <div class="stat-card stat-card-dash">
-        <span class="stat-icon-badge" style="background:#FBF0DD">🟡</span>
+        <span class="stat-icon-badge">🟡</span>
         <div class="stat-label" style="margin-top:8px">Pendentes</div>
         <div class="stat-value">${pendentesAbertos.length}</div>
         <div class="dash-stat-sub">aguardando conferência</div>
       </div>
       <div class="stat-card stat-card-dash">
-        <span class="stat-icon-badge" style="background:#F8E7E2">🔴</span>
+        <span class="stat-icon-badge">🔴</span>
         <div class="stat-label" style="margin-top:8px">Divergências</div>
         <div class="stat-value">${divergenciasAbertas.length}</div>
         <div class="dash-stat-sub">em aberto</div>
       </div>
       <div class="stat-card stat-card-dash">
-        <span class="stat-icon-badge" style="background:#E8F1EC">✅</span>
+        <span class="stat-icon-badge">✅</span>
         <div class="stat-label" style="margin-top:8px">Concluídos</div>
         <div class="stat-value">${concluidos.length}</div>
         <div class="dash-stat-sub">mov. 105 lançada</div>
